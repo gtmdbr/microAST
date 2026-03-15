@@ -3,323 +3,332 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ViTEK Drug Directory</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>CLSI M100 (2023) Big Data AST Navigator</title>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .table-row-hover:hover { background-color: #f9fafb; }
+        :root { --p: #0f172a; --r: #ef4444; --i: #f59e0b; --sdd: #f97316; --s: #22c55e; --bg: #f1f5f9; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; font-size: 13px; }
+        .wrapper { max-width: 1500px; margin: auto; background: white; border-radius: 10px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: var(--p); color: white; padding: 20px; text-align: center; border-bottom: 4px solid #334155; }
         
-        /* Styling for editable cells */
-        .editable-cell {
-            padding: 0.5rem;
-            border-radius: 0.375rem;
-            border: 1px solid transparent;
-            transition: all 0.2s;
-            min-height: 24px;
-            outline: none;
-        }
-        .editable-cell:hover {
-            background-color: #eff6ff;
-            border-color: #bfdbfe;
-            cursor: text;
-        }
-        .editable-cell:focus {
-            background-color: #ffffff;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-        }
-        .editable-cell:empty:before {
-            content: "-";
-            color: #d1d5db;
-        }
+        /* Interactive Dashboard */
+        .dash { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; padding: 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+        .control { display: flex; flex-direction: column; }
+        label { font-weight: bold; color: #475569; margin-bottom: 5px; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; }
+        select, input { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; }
+        .res-out { height: 55px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-weight: 800; font-size: 1.1rem; background: #cbd5e1; color: #1e293b; transition: all 0.3s ease; border: 2px solid transparent; }
+
+        /* Massive Table Styling */
+        .table-wrap { padding: 20px; overflow-x: auto; }
+        #search { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px; box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+        th { background: #f1f5f9; color: #334155; padding: 12px; text-align: left; border-bottom: 2px solid #e2e8f0; position: sticky; top: 0; font-size: 11px; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; line-height: 1.4; }
+        .drug-tag { font-family: monospace; font-weight: bold; color: #b91c1c; background: #fee2e2; padding: 2px 4px; border-radius: 3px; }
+        .comment { font-size: 11.5px; color: #64748b; max-width: 400px; }
+        
+        .R { color: var(--r); font-weight: bold; }
+        .I { color: var(--i); font-weight: bold; }
+        .SDD { color: var(--sdd); font-weight: bold; }
+        .S { color: var(--s); font-weight: bold; }
+        .warn { display: inline-block; color: white; background: #dc2626; padding: 1px 4px; border-radius: 3px; font-size: 10px; font-weight: 800; margin-right: 5px; }
     </style>
 </head>
-<body class="p-6 md:p-12 text-gray-800">
+<body>
 
-    <div class="max-w-7xl mx-auto">
-        <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div class="text-left">
-                <h1 class="text-3xl font-bold text-blue-700 mb-2"><i class="fas fa-pills mr-2"></i> ViTEK Directory</h1>
-                <p class="text-gray-500">Developed by GTMDBR</p>
-            </div>
-            
-            <div class="flex gap-3">
-                <button onclick="resetData()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2 shadow-sm text-sm">
-                    <i class="fa-solid fa-rotate-left"></i> Reset Data
-                </button>
-                <button onclick="addNewRow()" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2 shadow-sm text-sm">
-                    <i class="fa-solid fa-plus"></i> Add Row
-                </button>
-            </div>
+<div class="wrapper">
+    <div class="header">
+        <h1 style="margin:0; font-size: 20px;">CLSI M100 Clinical Master Navigator</h1>
+        <p style="margin:5px 0 0; opacity:0.8;">Full Standards Database (33rd Edition, 2023)</p>
+        <p style="margin:5px 0 0; opacity:0.8;">Developed by GTMDBR</p>
+    </div>
+
+    <div class="dash">
+        <div class="control">
+            <label>1. Select Bacterial Organism Group</label>
+            <select id="sppBox" onchange="updateDrugList(); refreshUI();"></select>
         </div>
-
-        <div class="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col md:flex-row gap-4 justify-between items-center border border-gray-100">
-            
-            <div class="relative w-full md:w-5/12">
-                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <i class="fa-solid fa-magnifying-glass text-gray-400"></i>
-                </div>
-                <input type="text" id="searchInput" class="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5 outline-none transition-all" placeholder="Search by Drug Code or Name...">
-            </div>
-
-            <div class="w-full md:w-3/12">
-                <select id="groupSelect" class="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 outline-none cursor-pointer">
-                    <option value="all">All AST Groups</option>
-                    <option value="AST 628">AST 628</option>
-                    <option value="AST 406">AST 406</option>
-                    <option value="AST 405">AST 405</option>
-                    <option value="AST 235">AST 235</option>
-                </select>
-            </div>
-
-            <div class="w-full md:w-auto flex justify-end">
-                <button onclick="sortAlphabetically()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-5 rounded-lg transition-colors flex items-center gap-2 border border-gray-200 text-sm">
-                    <i class="fa-solid fa-arrow-down-a-z"></i> Sort A-Z
-                </button>
-            </div>
+        <div class="control">
+            <label>2. Choose Antimicrobial Agent</label>
+            <select id="drugBox" onchange="runInterpret()"></select>
         </div>
-
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-600">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th scope="col" class="px-4 py-4 font-semibold w-2/12">Drug Code</th>
-                            <th scope="col" class="px-4 py-4 font-semibold w-4/12">Drug Name</th>
-                            <th scope="col" class="px-4 py-4 font-semibold text-center group-col w-1/12" data-group="AST 628">AST 628</th>
-                            <th scope="col" class="px-4 py-4 font-semibold text-center group-col w-1/12" data-group="AST 406">AST 406</th>
-                            <th scope="col" class="px-4 py-4 font-semibold text-center group-col w-1/12" data-group="AST 405">AST 405</th>
-                            <th scope="col" class="px-4 py-4 font-semibold text-center group-col w-1/12" data-group="AST 235">AST 235</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        </tbody>
-                </table>
-            </div>
-            <div id="noResults" class="hidden p-8 text-center text-gray-500">
-                <i class="fa-regular fa-folder-open text-4xl mb-3 text-gray-300"></i>
-                <p>No drugs found matching your search criteria.</p>
-            </div>
+        <div class="control">
+            <label>3. Enter Zone Diameter (mm)</label>
+            <input type="number" id="mmBox" placeholder="Measured value..." oninput="runInterpret()">
+        </div>
+        <div class="control">
+            <label>4. Automatic Interpretation</label>
+            <div id="resPill" class="res-out">READY</div>
         </div>
     </div>
 
-    <script>
-        // Key for local storage
-        const STORAGE_KEY = 'vitekDrugData_v1';
+    <div class="table-wrap">
+        <input type="text" id="search" placeholder="Search by drug name or LIS code (e.g., 'FEP')..." onkeyup="refreshUI()">
+        <table id="mainTable">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Antimicrobial Agent</th>
+                    <th>Disk</th>
+                    <th>R (≤)</th>
+                    <th>Intermediate</th>
+                    <th>SDD Range</th>
+                    <th>Susceptible (≥)</th>
+                    <th>Clinical Comments & Safety Warnings</th>
+                </tr>
+            </thead>
+            <tbody id="mainBody"></tbody>
+        </table>
+    </div>
+</div>
 
-        // Default Data parsed from new Excel file (Comments removed)
-        const defaultDrugData = [
-            {"code": "AK", "name": "Amikacin", "AST 628": "", "AST 406": "1", "AST 405": "1", "AST 235": "1"}, 
-            {"code": "AMC", "name": "Amoxicillin/clavulanate", "AST 628": "", "AST 406": "", "AST 405": "1", "AST 235": "1"}, 
-            {"code": "AMP", "name": "Ampicillin", "AST 628": "", "AST 406": "", "AST 405": "", "AST 235": "1"}, 
-            {"code": "AT", "name": "Aztreonam", "AST 628": "", "AST 406": "1", "AST 405": "", "AST 235": ""}, 
-            {"code": "BP", "name": "Benzylpenicillin", "AST 628": "1", "AST 406": "", "AST 405": "", "AST 235": ""}, 
-            {"code": "CAZ", "name": "Ceftazidime", "AST 628": "", "AST 406": "1", "AST 405": "", "AST 235": "1"}, 
-            {"code": "CD", "name": "Clindamycin", "AST 628": "1", "AST 406": "", "AST 405": "", "AST 235": ""}, 
-            {"code": "CF", "name": "Cefalotin", "AST 628": "", "AST 406": "", "AST 405": "", "AST 235": "1"}, 
-            {"code": "CF/S", "name": "Cefoperazone/Sulbactam", "AST 628": "", "AST 406": "1", "AST 405": "", "AST 235": ""}, 
-            {"code": "CFM", "name": "Cefixime", "AST 628": "", "AST 406": "", "AST 405": "", "AST 235": "1"}, 
-            {"code": "CIP", "name": "Ciprofloxacin", "AST 628": "1", "AST 406": "1", "AST 405": "1", "AST 235": "1"}, 
-            {"code": "CL", "name": "Colistin", "AST 628": "", "AST 406": "1", "AST 405": "1", "AST 235": ""}, 
-            {"code": "COT", "name": "Sulfamethoxazole/Trimethoprim", "AST 628": "1", "AST 406": "1", "AST 405": "1", "AST 235": "1"}, 
-            {"code": "CPM", "name": "Cefepime", "AST 628": "", "AST 406": "1", "AST 405": "1", "AST 235": ""}, 
-            {"code": "CTR", "name": "Ceftriaxone", "AST 628": "", "AST 406": "", "AST 405": "1", "AST 235": "1"}, 
-            {"code": "CX", "name": "Cefoxitin", "AST 628": "1", "AST 406": "", "AST 405": "", "AST 235": ""}, 
-            {"code": "CXM", "name": "Cefuroxime Axetil", "AST 628": "", "AST 406": "", "AST 405": "1", "AST 235": ""}, 
-            {"code": "DPT", "name": "Daptomycin", "AST 628": "1", "AST 406": "", "AST 405": "", "AST 235": ""}, 
-            {"code": "E", "name": "Erythromycin", "AST 628": "1", "AST 406": "", "AST 405": "", "AST 235": ""}, 
-            {"code": "ETP", "name": "Ertapenem", "AST 628": "", "AST 406": "", "AST 405": "1", "AST 235": "1"}, 
-            {"code": "FO", "name": "Fosfomycin", "AST 628": "", "AST 406": "1", "AST 405": "1", "AST 235": "1"}, 
-            {"code": "GEN ", "name": "Gentamicin", "AST 628": "1", "AST 406": "1", "AST 405": "1", "AST 235": "1"}, 
-            {"code": "IPM", "name": "Imipenem", "AST 628": "", "AST 406": "1", "AST 405": "1", "AST 235": ""}, 
-            {"code": "LE", "name": "Levofloxacin", "AST 628": "1", "AST 406": "1", "AST 405": "", "AST 235": ""}, 
-            {"code": "LZ", "name": "Linezolid", "AST 628": "1", "AST 406": "", "AST 405": "", "AST 235": ""}, 
-            {"code": "MI", "name": "Minocycline", "AST 628": "", "AST 406": "1", "AST 405": "", "AST 235": ""}, 
-            {"code": "MRP", "name": "Meropenem", "AST 628": "", "AST 406": "1", "AST 405": "1", "AST 235": ""}, 
-            {"code": "NA", "name": "Nalidixic acid", "AST 628": "", "AST 406": "", "AST 405": "", "AST 235": "1"}, 
-            {"code": "NIT", "name": "Nitrofurantoin", "AST 628": "1", "AST 406": "", "AST 405": "", "AST 235": "1"}, 
-            {"code": "NX", "name": "Norfloxacin", "AST 628": "", "AST 406": "", "AST 405": "", "AST 235": "1"}, 
-            {"code": "OF", "name": "Ofloxacin", "AST 628": "", "AST 406": "", "AST 405": "", "AST 235": "1"}, 
-            {"code": "OX ", "name": "Oxacillin", "AST 628": "1", "AST 406": "", "AST 405": "", "AST 235": ""}, 
-            {"code": "PIT", "name": "Piperacillin/Tazobactam", "AST 628": "", "AST 406": "1", "AST 405": "1", "AST 235": "1"}, 
-            {"code": "RIF", "name": "Rifampicin", "AST 628": "1", "AST 406": "", "AST 405": "", "AST 235": ""}, 
-            {"code": "TE", "name": "Tetracycline", "AST 628": "1", "AST 406": "", "AST 405": "", "AST 235": ""}, 
-            {"code": "TEI", "name": "Teicoplanin", "AST 628": "1", "AST 406": "", "AST 405": "", "AST 235": ""}, 
-            {"code": "TGC", "name": "Tigecycline", "AST 628": "1", "AST 406": "1", "AST 405": "1", "AST 235": ""}, 
-            {"code": "TI", "name": "Ticarcillin", "AST 628": "", "AST 406": "", "AST 405": "", "AST 235": "1"}, 
-            {"code": "V", "name": "Vancomycin", "AST 628": "1", "AST 406": "", "AST 405": "", "AST 235": ""}
-        ];
+<script>
+const sppList = [
+    "Enterobacterales (Table 2A)",
+    "Pseudomonas aeruginosa (Table 2B-1)",
+    "Acinetobacter spp. (Table 2B-2)",
+    "Burkholderia cepacia complex (Table 2B-3)",
+    "Stenotrophomonas maltophilia (Table 2B-4)",
+    "Staphylococcus spp. (Table 2C)",
+    "Enterococcus spp. (Table 2D)",
+    "Haemophilus influenzae/parainfluenzae (Table 2E)",
+    "Neisseria gonorrhoeae (Table 2F)",
+    "Streptococcus pneumoniae (Table 2G)",
+    "Streptococcus spp. Beta-Hemolytic Group (Table 2H-1)",
+    "Streptococcus spp. Viridans Group (Table 2H-2)",
+    "Neisseria meningitidis (Table 2I)"
+];
 
-        let drugData = [];
-        let currentId = 0;
+const bigData = [
+    // Table 2A: Enterobacterales
+    { grp: 0, name: "Amikacin", disk: "30 µg", s: 20, sdd: null, i: [17, 19], r: 16 },
+    { grp: 0, name: "Amoxycillin-clavulanate", disk: "20/10 µg", s: 18, sdd: null, i: [14, 17], r: 13 },
+    { grp: 0, name: "Ampicillin", disk: "10 µg", s: 17, sdd: null, i: [14, 16], r: 13 },
+    { grp: 0, name: "Ampicillin-sulbactam", disk: "10/10 µg", s: 15, sdd: null, i: [12, 14], r: 11 },
+    { grp: 0, name: "Aztreonam", disk: "30 µg", s: 21, sdd: null, i: [18, 20], r: 17 },
+    { grp: 0, name: "Aztreonam-avibactam", disk: "30/20 µg", s: 25, sdd: null, i: [22, 24], r: 21 },
+    { grp: 0, name: "Cefazolin (Urine only)", disk: "30 µg", s: 15, sdd: null, i: null, r: 14 },
+    { grp: 0, name: "Cefazolin (Parenteral)", disk: "30 µg", s: 23, sdd: null, i: [20, 22], r: 19 },
+    { grp: 0, name: "Cefepime", disk: "30 µg", s: 25, sdd: [19, 24], i: null, r: 18 },
+    { grp: 0, name: "Cefiderocol", disk: "30 µg", s: 16, sdd: null, i: [9, 15], r: 8 },
+    { grp: 0, name: "Cefixime", disk: "5 µg", s: 19, sdd: null, i: [16, 18], r: 15 },
+    { grp: 0, name: "Cefonicid", disk: "30 µg", s: 18, sdd: null, i: [15, 17], r: 14 },
+    { grp: 0, name: "Cefoperazone", disk: "75 µg", s: 21, sdd: null, i: [16, 20], r: 15 },
+    { grp: 0, name: "Cefotaxime", disk: "30 µg", s: 26, sdd: null, i: [23, 25], r: 22 },
+    { grp: 0, name: "Cefotetan", disk: "30 µg", s: 16, sdd: null, i: [13, 15], r: 12 },
+    { grp: 0, name: "Cefoxitin", disk: "30 µg", s: 18, sdd: null, i: [15, 17], r: 14 },
+    { grp: 0, name: "Ceftaroline", disk: "30 µg", s: 23, sdd: null, i: [20, 22], r: 19 },
+    { grp: 0, name: "Ceftazidime", disk: "30 µg", s: 21, sdd: null, i: [18, 20], r: 17 },
+    { grp: 0, name: "Ceftazidime-avibactam", disk: "30/20 µg", s: 21, sdd: null, i: null, r: 20 },
+    { grp: 0, name: "Ceftizoxime", disk: "30 µg", s: 25, sdd: null, i: [22, 24], r: 21 },
+    { grp: 0, name: "Ceftolozane-tazobactam", disk: "30/10 µg", s: 22, sdd: null, i: [19, 21], r: 18 },
+    { grp: 0, name: "Ceftriaxone", disk: "30 µg", s: 23, sdd: null, i: [20, 22], r: 19 },
+    { grp: 0, name: "Cefuroxime (Parenteral)", disk: "30 µg", s: 18, sdd: null, i: [15, 17], r: 14 },
+    { grp: 0, name: "Cefuroxime (Oral)", disk: "30 µg", s: 23, sdd: null, i: [15, 22], r: 14 },
+    { grp: 0, name: "Chloramphenicol", disk: "30 µg", s: 18, sdd: null, i: [13, 17], r: 12 },
+    { grp: 0, name: "Ciprofloxacin", disk: "5 µg", s: 26, sdd: null, i: [22, 25], r: 21 },
+    { grp: 0, name: "Doxycycline", disk: "30 µg", s: 14, sdd: null, i: [11, 13], r: 10 },
+    { grp: 0, name: "Ertapenem", disk: "10 µg", s: 22, sdd: null, i: [19, 21], r: 18 },
+    { grp: 0, name: "Fosfomycin (Urine E. coli)", disk: "200 µg", s: 16, sdd: null, i: [13, 15], r: 12 },
+    { grp: 0, name: "Gentamicin", disk: "10 µg", s: 18, sdd: null, i: [15, 17], r: 14 },
+    { grp: 0, name: "Imipenem", disk: "10 µg", s: 23, sdd: null, i: [20, 22], r: 19 },
+    { grp: 0, name: "Imipenem-relebactam", disk: "10/25 µg", s: 25, sdd: null, i: [21, 24], r: 23 },
+    { grp: 0, name: "Levofloxacin", disk: "5 µg", s: 21, sdd: null, i: [17, 20], r: 16 },
+    { grp: 0, name: "Mecillinam", disk: "10 µg", s: 15, sdd: null, i: [12, 14], r: 11 },
+    { grp: 0, name: "Meropenem", disk: "10 µg", s: 23, sdd: null, i: [20, 22], r: 19 },
+    { grp: 0, name: "Meropenem-vaborbactam", disk: "20/10 µg", s: 18, sdd: null, i: [15, 17], r: 14 },
+    { grp: 0, name: "Minocycline", disk: "30 µg", s: 16, sdd: null, i: [13, 15], r: 12 },
+    { grp: 0, name: "Moxalactam", disk: "30 µg", s: 23, sdd: null, i: [15, 22], r: 14 },
+    { grp: 0, name: "Nitrofurantoin (Urine only)", disk: "300 µg", s: 17, sdd: null, i: [15, 16], r: 14 },
+    { grp: 0, name: "Ofloxacin", disk: "5 µg", s: 16, sdd: null, i: [13, 15], r: 12 },
+    { grp: 0, name: "Piperacillin-Tazobactam", disk: "100/10 µg", s: 25, sdd: null, i: null, r: 20 },
+    { grp: 0, name: "Plazomicin", disk: "30 µg", s: 18, sdd: null, i: [15, 17], r: 14 },
+    { grp: 0, name: "Tetracycline", disk: "30 µg", s: 15, sdd: null, i: [12, 14], r: 11 },
+    { grp: 0, name: "Tobramycin", disk: "10 µg", s: 17, sdd: null, i: [13, 16], r: 12 },
+    { grp: 0, name: "Trimethoprim-Sulfamethoxazole", disk: "1.25/23.75 µg", s: 16, sdd: null, i: [11, 15], r: 10 },
 
-        // Load data from LocalStorage or use Default
-        try {
-            const savedData = localStorage.getItem(STORAGE_KEY);
-            if (savedData) {
-                drugData = JSON.parse(savedData);
-                // Set currentId based on highest existing ID to avoid conflicts when adding rows
-                if (drugData.length > 0) {
-                    currentId = Math.max(...drugData.map(d => d.id || 0)) + 1;
-                }
-            } else {
-                // Clone default data and assign IDs
-                drugData = JSON.parse(JSON.stringify(defaultDrugData));
-                drugData.forEach(item => item.id = currentId++);
-                saveToLocalStorage();
-            }
-        } catch (error) {
-            console.error("Failed to load local data, restoring default.", error);
-            drugData = JSON.parse(JSON.stringify(defaultDrugData));
-            drugData.forEach(item => item.id = currentId++);
-        }
+    // Table 2B-1: Pseudomonas aeruginosa
+    { grp: 1, name: "Aztreonam", disk: "30 µg", s: 22, sdd: null, i: [16, 21], r: 15 },
 
-        const tableBody = document.getElementById('tableBody');
-        const searchInput = document.getElementById('searchInput');
-        const groupSelect = document.getElementById('groupSelect');
-        const noResults = document.getElementById('noResults');
+    // Table 2B-2: Acinetobacter spp.
+    { grp: 2, name: "Ampicillin-sulbactam", disk: "10/10 µg", s: 15, sdd: null, i: [12, 14], r: 11 },
+    { grp: 2, name: "Ciprofloxacin", disk: "5 µg", s: 21, sdd: null, i: [16, 20], r: 15 },
+    { grp: 2, name: "Gatifloxacin", disk: "5 µg", s: 18, sdd: null, i: [15, 17], r: 14 },
+    { grp: 2, name: "Levofloxacin", disk: "5 µg", s: 17, sdd: null, i: [14, 16], r: 13 },
+    { grp: 2, name: "Piperacillin", disk: "100 µg", s: 21, sdd: null, i: [18, 20], r: 17 },
+    { grp: 2, name: "Piperacillin-tazobactam", disk: "100/10 µg", s: 21, sdd: null, i: [18, 20], r: 17 },
+    { grp: 2, name: "Trimethoprim-Sulfamethoxazole", disk: "1.25/23.75 µg", s: 16, sdd: null, i: [11, 15], r: 10 },
 
-        // Function to save current state to LocalStorage
-        function saveToLocalStorage() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(drugData));
-        }
+    // Table 2B-3: Burkholderia cepacia Complex
+    { grp: 3, name: "Ceftazidime", disk: "30 µg", s: 21, sdd: null, i: [18, 20], r: 17 },
+    { grp: 3, name: "Meropenem", disk: "10 µg", s: 20, sdd: null, i: [16, 19], r: 15 },
+    { grp: 3, name: "Minocycline", disk: "30 µg", s: 19, sdd: null, i: [15, 18], r: 14 },
 
-        // Reset Data Function
-        function resetData() {
-            if (confirm("Are you sure you want to reset the directory? All your edited changes and custom rows will be permanently deleted.")) {
-                localStorage.removeItem(STORAGE_KEY);
-                location.reload(); // Reload page to fetch defaults again
-            }
-        }
+    // Table 2B-4: Stenotrophomonas maltophilia
+    { grp: 4, name: "Cefiderocol", disk: "30 µg", s: 15, sdd: null, i: null, r: null },
+
+    // Table 2C: Staphylococcus spp. & S. aureus
+    { grp: 5, name: "Azithromycin", disk: "15 µg", s: 18, sdd: null, i: [14, 17], r: 13 },
+    { grp: 5, name: "Cefoxitin (S. aureus only)", disk: "30 µg", s: 22, sdd: null, i: null, r: 21 },
+    { grp: 5, name: "Ceftaroline", disk: "30 µg", s: 25, sdd: [20, 24], i: null, r: 19 },
+    { grp: 5, name: "Chloramphenicol", disk: "30 µg", s: 18, sdd: null, i: [13, 17], r: 12 },
+    { grp: 5, name: "Ciprofloxacin", disk: "5 µg", s: 21, sdd: null, i: [16, 20], r: 15 },
+    { grp: 5, name: "Clarithromycin", disk: "15 µg", s: 18, sdd: null, i: [14, 17], r: 13 },
+    { grp: 5, name: "Clindamycin", disk: "2 µg", s: 21, sdd: null, i: [15, 20], r: 14 },
+    { grp: 5, name: "Dirithromycin", disk: "15 µg", s: 19, sdd: null, i: [16, 18], r: 15 },
+    { grp: 5, name: "Doxycycline", disk: "30 µg", s: 16, sdd: null, i: [13, 15], r: 12 },
+    { grp: 5, name: "Enoxacin (Urine only)", disk: "10 µg", s: 18, sdd: null, i: [15, 17], r: 14 },
+    { grp: 5, name: "Erythromycin", disk: "15 µg", s: 23, sdd: null, i: [14, 22], r: 13 },
+    { grp: 5, name: "Fleroxacin", disk: "5 µg", s: 19, sdd: null, i: [16, 18], r: 15 },
+    { grp: 5, name: "Gatifloxacin", disk: "5 µg", s: 23, sdd: null, i: [20, 22], r: 19 },
+    { grp: 5, name: "Gentamicin", disk: "10 µg", s: 15, sdd: null, i: [13, 14], r: 12 },
+    { grp: 5, name: "Grepafloxacin", disk: "5 µg", s: 18, sdd: null, i: [15, 17], r: 14 },
+    { grp: 5, name: "Levofloxacin", disk: "5 µg", s: 19, sdd: null, i: [16, 18], r: 15 },
+    { grp: 5, name: "Linezolid (All Staphylococci)", disk: "30 µg", s: 21, sdd: null, i: null, r: 20 },
+    { grp: 5, name: "Lomefloxacin", disk: "10 µg", s: 22, sdd: null, i: [19, 21], r: 18 },
+    { grp: 5, name: "Minocycline", disk: "30 µg", s: 19, sdd: null, i: [15, 18], r: 14 },
+    { grp: 5, name: "Moxifloxacin", disk: "5 µg", s: 24, sdd: null, i: [21, 23], r: 20 },
+    { grp: 5, name: "Nitrofurantoin (Urine only)", disk: "300 µg", s: 17, sdd: null, i: [15, 16], r: 14 },
+    { grp: 5, name: "Norfloxacin (Urine only)", disk: "10 µg", s: 17, sdd: null, i: [13, 16], r: 12 },
+    { grp: 5, name: "Ofloxacin", disk: "5 µg", s: 18, sdd: null, i: [15, 17], r: 14 },
+    { grp: 5, name: "Penicillin", disk: "10 U", s: 29, sdd: null, i: null, r: 28 },
+    { grp: 5, name: "Quinupristin-dalfopristin (S. aureus only)", disk: "15 µg", s: 19, sdd: null, i: [16, 18], r: 15 },
+    { grp: 5, name: "Rifampin", disk: "5 µg", s: 20, sdd: null, i: [17, 19], r: 16 },
+    { grp: 5, name: "Sparfloxacin", disk: "5 µg", s: 19, sdd: null, i: [16, 18], r: 15 },
+    { grp: 5, name: "Tedizolid (Telizolid)", disk: "2 µg", s: 29, sdd: null, i: [16, 18], r: 15 },
+    { grp: 5, name: "Tetracycline", disk: "30 µg", s: 19, sdd: null, i: [15, 18], r: 14 },
+    { grp: 5, name: "Trimethoprim-Sulfamethoxazole", disk: "1.25/23.75 µg", s: 16, sdd: null, i: [11, 15], r: 10 },
+
+    // Table 2D: Enterococcus spp.
+    { grp: 6, name: "Ampicillin", disk: "10 µg", s: 17, sdd: null, i: null, r: 16 },
+    { grp: 6, name: "Chloramphenicol", disk: "30 µg", s: 18, sdd: null, i: [13, 17], r: 12 },
+    { grp: 6, name: "Doxycycline", disk: "30 µg", s: 16, sdd: null, i: [13, 15], r: 12 },
+    { grp: 6, name: "Erythromycin", disk: "15 µg", s: 23, sdd: null, i: [14, 22], r: 13 },
+    { grp: 6, name: "Linezolid", disk: "30 µg", s: 23, sdd: null, i: [21, 22], r: 20 },
+    { grp: 6, name: "Penicillin", disk: "10 U", s: 15, sdd: null, i: null, r: 14 },
+    { grp: 6, name: "Quinupristin-dalfopristin", disk: "15 µg", s: 19, sdd: null, i: [16, 18], r: 15 },
+    { grp: 6, name: "Tetracycline (Urine only)", disk: "30 µg", s: 19, sdd: null, i: [15, 18], r: 14 },
+
+    // Table 2E: Haemophilus influenzae
+    { grp: 7, name: "Fleroxacin", disk: "5 µg", s: 19, sdd: null, i: null, r: null },
+    { grp: 7, name: "Trovafloxacin", disk: "10 µg", s: 22, sdd: null, i: null, r: null },
+
+    // Table 2F: Neisseria gonorrhoeae
+    { grp: 8, name: "Azithromycin", disk: "15 µg", s: 30, sdd: null, i: null, r: null },
+
+    // Table 2G: Streptococcus pneumoniae
+    { grp: 9, name: "Clindamycin", disk: "2 µg", s: 19, sdd: null, i: [16, 18], r: 15 },
+    { grp: 9, name: "Penicillin (Oxacillin surrogate)", disk: "1 µg", s: 20, sdd: null, i: null, r: null },
+
+    // Table 2H-2: Streptococcus spp. Viridans Group
+    { grp: 10, name: "Chloramphenicol", disk: "30 µg", s: 21, sdd: null, i: [18, 20], r: 17 },
+    { grp: 10, name: "Clindamycin", disk: "2 µg", s: 19, sdd: null, i: [16, 18], r: 15 },
+    { grp: 10, name: "Quinupristin-dalfopristin", disk: "15 µg", s: 19, sdd: null, i: [16, 18], r: 15 }
+];
+
+function init() {
+    const s = document.getElementById('sppBox');
+    sppList.forEach((grpName, idx) => {
+        let o = document.createElement('option');
+        o.value = idx; 
+        o.innerText = grpName;
+        s.appendChild(o);
+    });
+    updateDrugList();
+    refreshUI();
+}
+
+// Repopulates the dropdown based on the species group selected
+function updateDrugList() {
+    const curGrp = parseInt(document.getElementById('sppBox').value);
+    const dBox = document.getElementById('drugBox');
+    dBox.innerHTML = "";
+
+    const drugsInGrp = bigData.filter(d => d.grp === curGrp);
+    drugsInGrp.forEach(d => {
+        const o = document.createElement('option');
+        o.value = d.code; // Use code as value for easier lookup
+        o.innerText = `${d.name} (${d.code})`;
+        dBox.appendChild(o);
+    });
+}
+
+// Updates the table below based on search and species
+function refreshUI() {
+    const curGrp = parseInt(document.getElementById('sppBox').value);
+    const q = document.getElementById('search').value.toLowerCase();
+    const tbody = document.getElementById('mainBody');
+    
+    tbody.innerHTML = "";
+
+    const filtered = bigData.filter(d => 
+        d.grp === curGrp && 
+        (d.name.toLowerCase().includes(q) || d.code.toLowerCase().includes(q))
+    );
+
+    filtered.forEach(d => {
+        const iV = d.i ? `${d.i[0]}-${d.i[1]}` : '-';
+        const sddV = d.sdd ? `${d.sdd[0]}-${d.sdd[1]}` : '-';
         
-        // Render Table Function
-        function renderTable(data, groupFilter) {
-            tableBody.innerHTML = '';
-            
-            // Handle Columns Visibility based on Group
-            const allGroupCols = document.querySelectorAll('.group-col');
-            allGroupCols.forEach(col => {
-                if(groupFilter === 'all' || col.dataset.group === groupFilter) {
-                    col.classList.remove('hidden');
-                } else {
-                    col.classList.add('hidden');
-                }
-            });
+        tbody.innerHTML += `
+            <tr>
+                <td><span class="drug-tag">${d.code}</span></td>
+                <td><strong>${d.name}</strong></td>
+                <td>${d.disk}</td>
+                <td><span class="R">≤${d.r || '-'}</span></td>
+                <td><span class="I">${iV}</span></td>
+                <td><span class="SDD">${sddV}</span></td>
+                <td><span class="S">≥${d.s || '-'}</span></td>
+                <td class="comment">${d.comm}</td>
+            </tr>`;
+    });
+}
 
-            if (data.length === 0) {
-                noResults.classList.remove('hidden');
-            } else {
-                noResults.classList.add('hidden');
-                
-                data.forEach((item, index) => {
-                    const tr = document.createElement('tr');
-                    tr.className = `border-b border-gray-100 table-row-hover ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`;
-                    
-                    let rowHTML = `
-                        <td class="px-2 py-2">
-                            <div contenteditable="true" class="editable-cell font-medium text-blue-700 uppercase" data-id="${item.id}" data-field="code">${item.code}</div>
-                        </td>
-                        <td class="px-2 py-2">
-                            <div contenteditable="true" class="editable-cell text-gray-800 font-medium" data-id="${item.id}" data-field="name">${item.name}</div>
-                        </td>
-                    `;
+function runInterpret() {
+    const curGrp = parseInt(document.getElementById('sppBox').value);
+    const mm = parseInt(document.getElementById('mmBox').value);
+    const res = document.getElementById('resPill');
+    const selectedDrugCode = document.getElementById('drugBox').value;
+    
+    if (isNaN(mm) || !selectedDrugCode) {
+        res.innerText = "WAITING FOR INPUT"; 
+        res.style.background = "#cbd5e1";
+        res.style.color = "#1e293b";
+        return;
+    }
 
-                    // Generate AST Columns dynamically
-                    ['AST 628', 'AST 406', 'AST 405', 'AST 235'].forEach(ast => {
-                        if (groupFilter === 'all' || groupFilter === ast) {
-                            rowHTML += `
-                            <td class="px-2 py-2 text-center group-col">
-                                <div contenteditable="true" class="editable-cell text-green-700 font-bold" data-id="${item.id}" data-field="${ast}">${item[ast] || ""}</div>
-                            </td>`;
-                        }
-                    });
+    const drug = bigData.find(d => d.grp === curGrp && d.code === selectedDrugCode);
 
-                    tr.innerHTML = rowHTML;
-                    tableBody.appendChild(tr);
-                });
-            }
-        }
+    if (!drug) return;
 
-        // Search and Filter Logic
-        function handleFilter() {
-            const searchTerm = searchInput.value.toLowerCase();
-            const selectedGroup = groupSelect.value;
+    // Interpretation logic
+    if (drug.disk === "See MIC" || drug.s === 0) {
+        res.innerText = "USE MIC METHOD"; 
+        res.style.background = "#1e293b"; 
+        res.style.color = "white";
+    } else if (mm >= drug.s) {
+        res.innerText = "SUSCEPTIBLE (S)"; 
+        res.style.background = "var(--s)";
+        res.style.color = "black";
+    } else if (drug.sdd && mm >= drug.sdd[0] && mm <= drug.sdd[1]) {
+        res.innerText = "SUSC-DOSE DEP (SDD)"; 
+        res.style.background = "var(--sdd)"; 
+        res.style.color = "white";
+    } else if (drug.i && mm >= drug.i[0] && mm <= drug.i[1]) {
+        res.innerText = "INTERMEDIATE (I)"; 
+        res.style.background = "var(--i)";
+        res.style.color = "black";
+    } else if (mm <= drug.r) {
+        res.innerText = "RESISTANT (R)"; 
+        res.style.background = "var(--r)"; 
+        res.style.color = "white";
+    } else {
+        res.innerText = "INVALID ZONE";
+        res.style.background = "#cbd5e1";
+    }
+}
 
-            const filteredData = drugData.filter(item => {
-                return item.code.toLowerCase().includes(searchTerm) || 
-                       item.name.toLowerCase().includes(searchTerm);
-            });
+window.onload = init;
+</script>
 
-            renderTable(filteredData, selectedGroup);
-        }
-
-        // Sort Functionality
-        function sortAlphabetically() {
-            drugData.sort((a, b) => {
-                const nameA = a.name.toLowerCase();
-                const nameB = b.name.toLowerCase();
-                if (nameA < nameB) return -1;
-                if (nameA > nameB) return 1;
-                return 0;
-            });
-            saveToLocalStorage(); // Save new sorted order
-            handleFilter(); // Re-render table keeping current search/filters active
-        }
-
-        // Add Row Functionality
-        function addNewRow() {
-            const newRow = {
-                "id": currentId++,
-                "code": "",
-                "name": "",
-                "AST 628": "",
-                "AST 406": "",
-                "AST 405": "",
-                "AST 235": ""
-            };
-            drugData.push(newRow);
-            
-            saveToLocalStorage(); // Save after adding a row
-            
-            // Clear search to ensure the new row is visible at the bottom
-            searchInput.value = "";
-            handleFilter();
-            
-            // Auto-scroll to bottom of the window
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-        }
-
-        // Listener for Real-Time Data Updating via ContentEditable
-        tableBody.addEventListener('input', (e) => {
-            if (e.target.classList.contains('editable-cell')) {
-                const id = e.target.getAttribute('data-id');
-                const field = e.target.getAttribute('data-field');
-                let newValue = e.target.innerText.trim();
-                
-                // If it's a code field, auto uppercase it in background data
-                if (field === "code") {
-                    newValue = newValue.toUpperCase();
-                }
-
-                // Update the main drugData array
-                const dataIndex = drugData.findIndex(d => d.id == id);
-                if (dataIndex !== -1) {
-                    drugData[dataIndex][field] = newValue;
-                    saveToLocalStorage(); // Auto-save on every keystroke
-                }
-            }
-        });
-
-        // Event Listeners for Filters
-        searchInput.addEventListener('input', handleFilter);
-        groupSelect.addEventListener('change', handleFilter);
-
-        // Initial Render
-        renderTable(drugData, 'all');
-    </script>
 </body>
 </html>
-
-
-
